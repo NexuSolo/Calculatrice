@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <math.h>
 
 unbounded_int init_unbounded_int() {
     return (unbounded_int) {.signe = '+', .len = 0, .premier = NULL, .dernier = NULL};
@@ -51,6 +52,28 @@ chiffre *char_to_chiffre(char c) {
     res->c = c;
     res->precedent = res->suivant = NULL;
     return res;
+}
+
+unbounded_int verify_0_unbounded_int(unbounded_int a) {
+    if(a.premier == NULL) {
+        return a;
+    }
+    chiffre *tmp = a.premier;
+    if(tmp->c == '0') {
+        while (tmp->suivant != NULL) {
+            if(tmp->c == '0') {
+                a.premier = a.premier->suivant;
+                free(a.premier->precedent);
+                a.premier->precedent = NULL;
+                a.len--;
+            }
+            else {
+                return a;
+            }
+            tmp = a.premier;
+        }
+    }
+    return a;
 }
 
 unbounded_int string2unbounded_int(const char *e) {
@@ -136,7 +159,10 @@ int unbounded_int_cmp_unbounded_int(unbounded_int a, unbounded_int b) {
         chiffre *tmpb = b.premier;
         for (int i = 0; i < a.len; i++) {
             if(tmpa->c != tmpb->c) {
-                return tmpa->c < tmpb->c ?-1:1;
+                if(a.signe == '+') {
+                    return tmpa->c < tmpb->c ?-1:1;
+                }
+                return tmpa->c < tmpb->c ?1:-1;
             }
             tmpa = tmpa->suivant;
             tmpb = tmpb->suivant;
@@ -152,9 +178,110 @@ int unbounded_int_cmp_ll(unbounded_int a, long long b) {
     return unbounded_int_cmp_unbounded_int(a,ll2unbounded_int(b));
 }
 
+unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b) {
+    if (b.signe != a.signe) {
+        if(b.signe == '-') {
+            unbounded_int b2 = b;
+            b2.signe = '+';
+            return unbounded_int_difference(a,b2);
+        }
+        unbounded_int a2 = a;
+        a2.signe = '+';
+        return unbounded_int_difference(b,a2);
+    }
+    unbounded_int res = init_unbounded_int();
+    res.signe = a.signe;
+    int retenue = 0;
+    chiffre *tmpa = a.dernier;
+    chiffre *tmpb = b.dernier;
+    while (tmpa != NULL && tmpb != NULL) {
+        int tmp = tmpa->c + tmpb->c - 2 * '0' + retenue;
+        retenue = tmp/10;
+        add_char_to_unbounded_int_at_start(&res, tmp%10 + '0');
+        tmpa = tmpa->precedent;
+        tmpb = tmpb->precedent;
+    }
+    while (tmpa != NULL) {
+        int tmp = tmpa->c - '0' + retenue;
+        retenue = tmp/10;
+        add_char_to_unbounded_int_at_start(&res, tmp%10 + '0');
+        tmpa = tmpa->precedent;
+    }
+    while (tmpb != NULL) {
+        int tmp = tmpb->c - '0' + retenue;
+        retenue = tmp/10;
+        add_char_to_unbounded_int_at_start(&res, tmp%10 + '0');
+        tmpb = tmpb->precedent;
+    }
+    if(retenue != 0) {
+        add_char_to_unbounded_int_at_start(&res, retenue + '0');
+    }
+    return res;
+}
+
+unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b) {
+    if (b.signe != a.signe) {
+        if (b.signe == '-') {
+            unbounded_int b2 = b;
+            b2.signe = '+';
+            return unbounded_int_somme(a, b2);
+        }
+        unbounded_int b2 = b;
+        b2.signe = '-';
+        return unbounded_int_somme(a, b2);
+    }
+    unbounded_int res = init_unbounded_int();
+    int signe = unbounded_int_cmp_unbounded_int(a,b);
+    if(signe == 0) {
+        add_char_to_unbounded_int_at_start(&res, '0');
+        return res;
+    }
+    if(signe == -1 && a.signe == '+') {
+        res = unbounded_int_difference(b, a);
+        res.signe = '-';
+        return verify_0_unbounded_int(res); 
+    }
+    if(signe == 1 && a.signe == '-') {
+        res = unbounded_int_difference(b, a);
+        res.signe = '+';
+        return verify_0_unbounded_int(res);
+    }
+    if(signe == 1 && a.signe == '+') {
+        res.signe = '+';
+    }
+    if(signe == -1 && a.signe == '-') {
+        res.signe = '-';
+    }
+    int retenue = 0;
+    chiffre *tmpa = a.dernier;
+    chiffre *tmpb = b.dernier;
+    while (tmpa != NULL && tmpb != NULL) {
+        int tmp = tmpa->c - tmpb->c - retenue;
+        retenue = tmp>=0?0:1;
+        add_char_to_unbounded_int_at_start(&res, tmp>=0?(tmp+'0'):(abs(10+tmp) + '0'));
+        tmpa = tmpa->precedent;
+        tmpb = tmpb->precedent;
+    }
+    while (tmpa != NULL) {
+        int tmp = tmpa->c - '0' - retenue;
+        retenue = tmp>=0?0:1;
+        add_char_to_unbounded_int_at_start(&res, tmp>=0?(tmp+'0'):(abs(10+tmp) + '0') + '0');
+        tmpa = tmpa->precedent;
+    }
+    while (tmpb != NULL) {
+        int tmp = tmpb->c - '0' - retenue;
+        retenue = tmp>=0?0:1;
+        add_char_to_unbounded_int_at_start(&res, tmp>=0?(tmp+'0'):(abs(10+tmp) + '0') + '0');
+        tmpb = tmpb->precedent;
+    }
+    return verify_0_unbounded_int(res);
+}
+
+
 int main(int argc, char const *argv[]) {
-    unbounded_int n = string2unbounded_int("100");
-    long long n2 = -10;
-    printf("%d\n", unbounded_int_cmp_ll(n, n2));
+    unbounded_int a = string2unbounded_int("-100");
+    unbounded_int b = string2unbounded_int("-99");
+    unbounded_int c = unbounded_int_somme(a,b);
+    printf("%s\n", unbounded_int2string(c));
     return 0;
 }

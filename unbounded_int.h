@@ -29,4 +29,8 @@ static int unbounded_int_cmp_unbounded_int(unbounded_int a, unbounded_int b);
 
 static int unbounded_int_cmp_ll(unbounded_int a, long long b);
 
+static unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b);
+
+static unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b);
+
 static unbounded_int unbounded_int_error = {.signe = '*', .len = 0, .premier = NULL, .dernier = NULL};
