@@ -54,6 +54,8 @@ chiffre *char_to_chiffre(char c) {
     return res;
 }
 
+
+
 unbounded_int verify_0_unbounded_int(unbounded_int a) {
     if(a.premier == NULL) {
         return a;
@@ -74,6 +76,16 @@ unbounded_int verify_0_unbounded_int(unbounded_int a) {
         }
     }
     return a;
+}
+
+static chiffre *get_chiffre_at_unit(unbounded_int *n,int p) {
+    if (p > n -> len || p < 0) return NULL;
+    chiffre *tmp = n -> dernier;
+    for (int i = 0 ; i < p; i++) {
+        tmp = tmp -> precedent;
+    }
+    return tmp;
+
 }
 
 unbounded_int string2unbounded_int(const char *e) {
@@ -179,6 +191,7 @@ int unbounded_int_cmp_ll(unbounded_int a, long long b) {
 }
 
 unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b) {
+    if (a.signe == '*' || b.signe == '*') return unbounded_int_error;
     if (b.signe != a.signe) {
         if(b.signe == '-') {
             unbounded_int b2 = b;
@@ -220,6 +233,7 @@ unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b) {
 }
 
 unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b) {
+    if (a.signe == '*' || b.signe == '*') return unbounded_int_error;
     if (b.signe != a.signe) {
         if (b.signe == '-') {
             unbounded_int b2 = b;
@@ -277,11 +291,38 @@ unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b) {
     return verify_0_unbounded_int(res);
 }
 
+unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b) {
+    if (a.signe == '*' || b.signe == '*') return unbounded_int_error;
+    unbounded_int c = init_unbounded_int();
+    size_t lena = a.len;
+    size_t lenb = b.len;
+    for (int i = 0; i < lena + lenb; i++) {
+        add_char_to_unbounded_int_at_start(&c,'0');
+    }
+    for (int j = 0 ; j < lenb; j++) { 
+        int r = 0 ;
+        if (get_chiffre_at_unit(&b,j) -> c == '0' ) continue;
+        for (int i = 0; i < lena; i++) {
+            int cij = get_chiffre_at_unit(&c,i+j) -> c  - '0' ;
+            int ai = get_chiffre_at_unit(&a,i) -> c - '0';
+            int bj = get_chiffre_at_unit(&b,j) -> c  - '0';
+            int v = cij + ai  * bj  + r;
+            get_chiffre_at_unit(&c,i+j) -> c = (v %10) + '0';
+            r = v/10;
+        }
+    get_chiffre_at_unit(&c,j+lena) -> c = r + '0';
+    }
+    c.signe = (a.signe == b.signe) ? '+' : '-';
+    return verify_0_unbounded_int(c);
+}
 
 int main(int argc, char const *argv[]) {
-    unbounded_int a = string2unbounded_int("-100");
-    unbounded_int b = string2unbounded_int("-99");
+    unbounded_int a = string2unbounded_int("-30");
+    unbounded_int b = string2unbounded_int("-15900");
     unbounded_int c = unbounded_int_somme(a,b);
-    printf("%s\n", unbounded_int2string(c));
+    unbounded_int d = unbounded_int_produit(a,b);
+    // printf("%c\n", get_chiffre_at_unit(&c,2) -> c);
+    printf("%s\n", unbounded_int2string(d));
+
     return 0;
 }

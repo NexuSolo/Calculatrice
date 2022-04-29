@@ -19,6 +19,8 @@ static void add_char_to_unbounded_int_at_end(unbounded_int *n, char c);
 
 static void add_char_to_unbounded_int_at_start(unbounded_int *n, char c);
 
+static chiffre *get_chiffre_at_unit(unbounded_int *n,int p);
+
 static chiffre *char_to_chiffre(char c);
 
 static unbounded_int string2unbounded_int(const char *e);
@@ -32,5 +34,7 @@ static int unbounded_int_cmp_ll(unbounded_int a, long long b);
 static unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b);
 
 static unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b);
+
+unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b);
 
 static unbounded_int unbounded_int_error = {.signe = '*', .len = 0, .premier = NULL, .dernier = NULL};
