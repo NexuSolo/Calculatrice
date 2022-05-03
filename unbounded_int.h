@@ -13,6 +13,16 @@ typedef struct {
     chiffre *dernier;
 } unbounded_int;
 
+typedef struct variable{
+    char *name;
+    unbounded_int value;
+    struct variable *suivant;
+} variable;
+
+typedef struct table{
+    variable *premier;
+} table;
+
 static unbounded_int init_unbounded_int();
 
 static void add_char_to_unbounded_int_at_end(unbounded_int *n, char c);

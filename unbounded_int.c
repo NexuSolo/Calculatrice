@@ -5,6 +5,9 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
+#define LEN 4096
+#define ARG_MAX 5
 
 unbounded_int init_unbounded_int() {
     return (unbounded_int) {.signe = '+', .len = 0, .premier = NULL, .dernier = NULL};
@@ -53,8 +56,6 @@ chiffre *char_to_chiffre(char c) {
     res->precedent = res->suivant = NULL;
     return res;
 }
-
-
 
 unbounded_int verify_0_unbounded_int(unbounded_int a) {
     if(a.premier == NULL) {
@@ -316,13 +317,92 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b) {
     return verify_0_unbounded_int(c);
 }
 
-int main(int argc, char const *argv[]) {
-    unbounded_int a = string2unbounded_int("-30");
-    unbounded_int b = string2unbounded_int("-15900");
-    unbounded_int c = unbounded_int_somme(a,b);
-    unbounded_int d = unbounded_int_produit(a,b);
-    // printf("%c\n", get_chiffre_at_unit(&c,2) -> c);
-    printf("%s\n", unbounded_int2string(d));
+char *getline(FILE *f1) {
+    if(getc(f1) == EOF) {
+        return NULL;
+    }
+    fseek(f1, SEEK_CUR - 1, 0);
+    char *res = malloc(sizeof(char) * LEN);
+    fscanf(f1, "%[^\n]", res);
+    return res;
+}
 
+bool is_a_var(char *c, size_t taille) {
+    if(isalpha(c[0])) {
+        for (size_t i = 1; i < taille; i++) {
+            if(!isalnum(c[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool is_a_number(char *c, size_t taille) {
+    if(c[0] == '-' || c[0] == '+' || isdigit(c[0])) {
+        for (size_t i = 1; i < taille; i++) {
+            if(!isdigit(c[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool verif_ligne(char *c, size_t taille) {
+    if(taille > 5 || taille < 2) return false;
+    bool variable = false;
+    bool print = false;
+    bool op = false;
+    for (size_t i = 0; i < taille; i++){
+        if(c[i] == "print") {
+            if(i != 0) return false;
+            print = true;
+        }
+        if(c[i] == '=') {
+            if(print == true || i != 1) return false;
+            variable = false;
+        }
+        if( c[i] == '+' || c[i] == '-' || c[i] == '*') {
+        if(i != 3 || print == true) return false;
+            variable = false;
+            op = true;
+        }
+        else {
+            if(variable == true || i == 3) return false;
+            if(i == 0 && !is_a_var(c[i],strlen(c[i]))) return false; 
+            if(!is_a_var(c[i],strlen(c[i])) && !is_a_number(c[i],strlen(c[i]))) return false;
+            variable = true;
+        }
+    }
+    if(print && taille > 2) return false;
+    if(op && taille <= 4) return false;
+    return true;
+}
+
+void traitement_ligne(table t, char *l) {
+    char *res = strtok(l, " ");
+    int taille = 0;
+    char *buffer[6];
+    while(res != NULL) {
+        buffer[taille++] = res;
+        res = strtok(NULL, " ");
+    }
+    if(verif_ligne(res,taille)) {
+        printf("C'est good");
+    }
+    else {
+        printf("C'est pas good");
+    }
+}
+
+int main(int argc, char const *argv[]) {
+    table t = {.premier = NULL};
+    // // char *c = getline(fopen("test","r"));
+    // // traitement_ligne(t,c);
+    char *c = getline(fopen("test","r"));
+    traitement_ligne(t, c);
     return 0;
 }
