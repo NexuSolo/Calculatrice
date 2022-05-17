@@ -324,6 +324,7 @@ char *getline(FILE *f1) {
     fseek(f1, SEEK_CUR - 1, 0);
     char *res = malloc(sizeof(char) * LEN);
     fscanf(f1, "%[^\n]", res);
+    printf("%s \n",res);
     return res;
 }
 
@@ -351,31 +352,36 @@ bool is_a_number(char *c, size_t taille) {
     return false;
 }
 
-bool verif_ligne(char *c, size_t taille) {
+bool verif_ligne(char **c, size_t taille) {
+    // printf("test %s 0 \n",c[0]);
+
     if(taille > 5 || taille < 2) return false;
     bool variable = false;
     bool print = false;
     bool op = false;
     for (size_t i = 0; i < taille; i++){
+        // printf("%d ",strlen(c[i]));
         if(c[i] == "print") {
             if(i != 0) return false;
             print = true;
         }
-        if(c[i] == '=') {
+        
+        if(strcmp(c[i], "=") == 0) {
             if(print == true || i != 1) return false;
             variable = false;
         }
-        if( c[i] == '+' || c[i] == '-' || c[i] == '*') {
-        if(i != 3 || print == true) return false;
+        else if( strcmp(c[i], "+")  == 0  ||  strcmp(c[i], "-")   == 0   || strcmp(c[i], "*")  == 0 ) {
+            if(i != 3 || print == true)  return false;
             variable = false;
             op = true;
         }
         else {
             if(variable == true || i == 3) return false;
-            if(i == 0 && !is_a_var(c[i],strlen(c[i]))) return false; 
+            if(i == 0 && !is_a_var(c[i],strlen(c[i])))  return false; 
             if(!is_a_var(c[i],strlen(c[i])) && !is_a_number(c[i],strlen(c[i]))) return false;
             variable = true;
         }
+        
     }
     if(print && taille > 2) return false;
     if(op && taille <= 4) return false;
@@ -390,7 +396,7 @@ void traitement_ligne(table t, char *l) {
         buffer[taille++] = res;
         res = strtok(NULL, " ");
     }
-    if(verif_ligne(res,taille)) {
+    if(verif_ligne(buffer,taille)) {
         printf("C'est good");
     }
     else {
