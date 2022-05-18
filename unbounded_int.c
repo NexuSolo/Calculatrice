@@ -352,55 +352,60 @@ bool is_a_number(char *c, size_t taille) {
     return false;
 }
 
-bool verif_ligne(char **c, size_t taille) {
+int verif_ligne(char **c, size_t taille) {
     // printf("test %s 0 \n",c[0]);
-
-    if(taille > 5 || taille < 2) return false;
+    if(taille < 2) return -1;
     bool variable = false;
     bool print = false;
     bool op = false;
+    int res = -1;
     for (size_t i = 0; i < taille; i++){
         // printf("%d ",strlen(c[i]));
-        if(c[i] == "print") {
-            if(i != 0) return false;
+        if(strcmp(c[i],"print")) {
+            if(i != 0) return -1;
             print = true;
         }
-        
         if(strcmp(c[i], "=") == 0) {
-            if(print == true || i != 1) return false;
+            if(print == true || i != 1) return -1;
             variable = false;
         }
         else if( strcmp(c[i], "+")  == 0  ||  strcmp(c[i], "-")   == 0   || strcmp(c[i], "*")  == 0 ) {
-            if(i != 3 || print == true)  return false;
+            if(i != 3 || print == true)  return -1;
             variable = false;
             op = true;
         }
         else {
-            if(variable == true || i == 3) return false;
-            if(i == 0 && !is_a_var(c[i],strlen(c[i])))  return false; 
-            if(!is_a_var(c[i],strlen(c[i])) && !is_a_number(c[i],strlen(c[i]))) return false;
+            if(variable == true || i == 3) return -1;
+            if(i == 0 && !is_a_var(c[i],strlen(c[i])))  return -1; 
+            if(!is_a_var(c[i],strlen(c[i])) && !is_a_number(c[i],strlen(c[i]))) return -1;
+            res++;
             variable = true;
         }
-        
     }
-    if(print && taille > 2) return false;
-    if(op && taille <= 4) return false;
-    return true;
+    if(print && taille > 2) return -1;
+    if(op && taille <= 4) return -1;
+    return res;
 }
 
 void traitement_ligne(table t, char *l) {
     char *res = strtok(l, " ");
     int taille = 0;
-    char *buffer[6];
+    char *buffer[1024];
     while(res != NULL) {
         buffer[taille++] = res;
         res = strtok(NULL, " ");
     }
-    if(verif_ligne(buffer,taille)) {
+    int tmp = verif_ligne(buffer,taille);
+    if(tmp == -1) {
+        //erreur
+        printf("C'est pas good");
+    }
+    else if(tmp == 0) {
+        //print
         printf("C'est good");
     }
     else {
-        printf("C'est pas good");
+        //assignation var
     }
 }
 
