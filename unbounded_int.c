@@ -8,6 +8,10 @@
 #include <string.h>
 #define LEN 4096
 #define ARG_MAX 5
+// output 0 = print dans le stdout,
+// output 1 = print dans le fichier
+static int outputType = 0;
+static FILE *output = NULL;
 
 variable *get_table(table *t, const char *name) {
     variable *v = t->premier;
@@ -426,6 +430,15 @@ void traitement_ligne(table t, char *l) {
     }
     else if(tmp == 0) {
         //print
+        if (is_a_var(buffer[3],strlen(buffer[3]))) {
+            if (output == 0) {
+                fprintf(output,"");
+            }
+            //Interaction table;
+        }
+        else {
+
+        }
         printf("C'est good");
     }
     else {
