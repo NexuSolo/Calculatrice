@@ -1,3 +1,1 @@
-1 = a + badzc 
-print b
-a = b
+a = 20 * 1000

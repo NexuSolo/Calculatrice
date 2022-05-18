@@ -13,6 +13,9 @@ static int outputType = 0;
 static FILE *output = NULL;
 
 variable *get_table_value(table t, const char *name) {
+    if(t.premier == NULL) {
+        return NULL;
+    }
     variable *v = t.premier;
     while (v != NULL) {
         if (strcmp(v->name, name) == 0) {
@@ -23,13 +26,15 @@ variable *get_table_value(table t, const char *name) {
     return NULL;
 }
 
-void insert_table_value(table t, const char *name, unbounded_int value) {
+void set_table_value(table t, const char *name, unbounded_int value) {
     variable *v = get_table_value(t, name);
     if (v == NULL) {
         variable *tmp = malloc(sizeof(variable));
         tmp->name = name;
         tmp->value = value;
-        tmp->suivant = t.premier;
+        if(t.premier != NULL) {
+            tmp->suivant = t.premier;
+        }
         t.premier = tmp;
     } else {
         v->value = value;
@@ -386,9 +391,10 @@ int verif_ligne(char **c, size_t taille) {
     bool print = false;
     bool op = false;
     int res = -1;
+    
     for (size_t i = 0; i < taille; i++){
         // printf("%d ",strlen(c[i]));
-        if(strcmp(c[i],"print")) {
+        if(strcmp(c[i],"print") == 0) {
             if(i != 0) return -1;
             print = true;
         }
@@ -414,40 +420,60 @@ int verif_ligne(char **c, size_t taille) {
     return res;
 }
 
-void maj_variable(table t, char **c, size_t taille, size_t nb_var) {
+void maj_variable(table t, char **c, size_t taille) {
     unbounded_int res[taille/2];
     int i = 0;
-    int j = 3;
+    int j = 2;
     bool mult = false;
     bool pos = true;
-    unbounded_int tmp;
-    if(is_a_var(c[j], strlen(c[j]))) {
-        tmp = get_table_value(t, c[j])->value;
-    }
-    else {
-        tmp = string2unbounded_int(c[j]);
-    }
-    res[i] = tmp;
-    while(j <= taille) {
+    while(j < taille) {
         if(strcmp(c[j], "-") == 0) {
             pos = false;
         }
         else if(strcmp(c[j], "*") == 0) {
             mult = true;
         }
-        else {
-            if(is_a_var(c[j], strlen(c[j]))) {
-                tmp = get_table_value(t, c[j])->value;
+        else if(strcmp(c[j], "+") != 0) {
+            if(!mult) {
+                if(is_a_var(c[j], strlen(c[j]))) {
+                    res[i] = get_table_value(t, c[j])->value;
+                    if(!pos) {
+                        if(res[i].signe == '+') {
+                            res[i].signe = '-';
+                        }
+                        else {
+                            res[i].signe = '+';
+                        }
+                    }
+                }
+                else {
+                    res[i] = string2unbounded_int(c[j]);
+                    if(!pos) {
+                        if(res[i].signe == '+') {
+                            res[i].signe = '-';
+                        }
+                        else {
+                            res[i].signe = '+';
+                        }
+                    }
+                }
+            i++;
             }
             else {
-                tmp = string2unbounded_int(c[j]);
+                if(is_a_var(c[j], strlen(c[j]))) {
+                    res[i-1] = unbounded_int_produit(res[i-1], get_table_value(t, c[j])->value);
+                }
+                else {
+                    res[i-1] = unbounded_int_produit(res[i-1], string2unbounded_int(c[j]));
+                }
             }
             mult = false;
             pos = true;
         }
         j++;
-        i++;
     }
+    printf("%s\n", unbounded_int2string(res[0]));
+    printf("%s\n", unbounded_int2string(res[1]));
 }
 
 void traitement_ligne(table t, char *l) {
@@ -461,31 +487,32 @@ void traitement_ligne(table t, char *l) {
     int tmp = verif_ligne(buffer,taille);
     if(tmp == -1) {
         //erreur
-        printf("C'est pas good");
+        printf("C'est pas good\n");
     }
     else if(tmp == 0) {
-        arg_print(buffer[3],&t);
+        // arg_print(buffer[3],&t);
         //print 
        
-        printf("C'est good");
+        printf("print\n");
     }
     else {
-        maj_variable(t, buffer, taille, tmp);
+        printf("maj var\n");
+        maj_variable(t, buffer, taille);
         //assignation var
     }
 }
 
-void arg_print(char *c,table *t){
-    if (output != NULL) {
-        if (!is_a_var(c,strlen(c)) ) {
-            fprintf(output,unbounded_int2string(string2unbounded_int(c)));
-        }
-        else {
-            variable *v = get_table(t,c);
-            fprintf(output,unbounded_int2string(v->value));
-        }
-    }
-}
+// void arg_print(char *c,table *t){
+//     if (output != NULL) {
+//         if (!is_a_var(c,strlen(c)) ) {
+//             fprintf(output,unbounded_int2string(string2unbounded_int(c)));
+//         }
+//         else {
+//             variable *v = get_table(t,c);
+//             fprintf(output,unbounded_int2string(v->value));
+//         }
+//     }
+// }
 
 int main(int argc, char const *argv[]) {
     table t = {.premier = NULL};
