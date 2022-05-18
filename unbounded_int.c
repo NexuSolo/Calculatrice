@@ -9,6 +9,30 @@
 #define LEN 4096
 #define ARG_MAX 5
 
+unbounded_int *get_table(table *t, const char *name) {
+    variable *v = t->premier;
+    while (v != NULL) {
+        if (strcmp(v->name, name) == 0) {
+            return &v->value;
+        }
+        v = v->suivant;
+    }
+    return NULL;
+}
+
+void insert_table(table *t, const char *name, unbounded_int value) {
+    variable *v = get_table(t, name);
+    if (v == NULL) {
+        variable *tmp = malloc(sizeof(variable));
+        tmp->name = name;
+        tmp->value = value;
+        tmp->suivant = t->premier;
+        t->premier = tmp;
+    } else {
+        v->value = value;
+    }
+}
+
 unbounded_int init_unbounded_int() {
     return (unbounded_int) {.signe = '+', .len = 0, .premier = NULL, .dernier = NULL};
 }
