@@ -9,11 +9,11 @@
 #define LEN 4096
 #define ARG_MAX 5
 
-unbounded_int *get_table(table *t, const char *name) {
+variable *get_table(table *t, const char *name) {
     variable *v = t->premier;
     while (v != NULL) {
         if (strcmp(v->name, name) == 0) {
-            return &v->value;
+            return v;
         }
         v = v->suivant;
     }

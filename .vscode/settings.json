@@ -1,3 +1,6 @@
 {
-    "docwriter.language": "French"
+    "docwriter.language": "French",
+    "files.associations": {
+        "math.h": "c"
+    }
 }

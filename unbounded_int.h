@@ -14,7 +14,7 @@ typedef struct {
 } unbounded_int;
 
 typedef struct variable{
-    char *name;
+    const char *name;
     unbounded_int value;
     struct variable *suivant;
 } variable;
