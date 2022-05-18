@@ -7,14 +7,13 @@
 #include <math.h>
 #include <string.h>
 #define LEN 4096
-#define ARG_MAX 5
 // output 0 = print dans le stdout,
 // output 1 = print dans le fichier
 static int outputType = 0;
 static FILE *output = NULL;
 
-variable *get_table(table *t, const char *name) {
-    variable *v = t->premier;
+variable *get_table_value(table t, const char *name) {
+    variable *v = t.premier;
     while (v != NULL) {
         if (strcmp(v->name, name) == 0) {
             return v;
@@ -24,14 +23,14 @@ variable *get_table(table *t, const char *name) {
     return NULL;
 }
 
-void insert_table(table *t, const char *name, unbounded_int value) {
-    variable *v = get_table(t, name);
+void insert_table_value(table t, const char *name, unbounded_int value) {
+    variable *v = get_table_value(t, name);
     if (v == NULL) {
         variable *tmp = malloc(sizeof(variable));
         tmp->name = name;
         tmp->value = value;
-        tmp->suivant = t->premier;
-        t->premier = tmp;
+        tmp->suivant = t.premier;
+        t.premier = tmp;
     } else {
         v->value = value;
     }
@@ -415,6 +414,42 @@ int verif_ligne(char **c, size_t taille) {
     return res;
 }
 
+void maj_variable(table t, char **c, size_t taille, size_t nb_var) {
+    unbounded_int res[taille/2];
+    int i = 0;
+    int j = 3;
+    bool mult = false;
+    bool pos = true;
+    unbounded_int tmp;
+    if(is_a_var(c[j], strlen(c[j]))) {
+        tmp = get_table_value(t, c[j])->value;
+    }
+    else {
+        tmp = string2unbounded_int(c[j]);
+    }
+    res[i] = tmp;
+    while(j <= taille) {
+        if(strcmp(c[j], "-") == 0) {
+            pos = false;
+        }
+        else if(strcmp(c[j], "*") == 0) {
+            mult = true;
+        }
+        else {
+            if(is_a_var(c[j], strlen(c[j]))) {
+                tmp = get_table_value(t, c[j])->value;
+            }
+            else {
+                tmp = string2unbounded_int(c[j]);
+            }
+            mult = false;
+            pos = true;
+        }
+        j++;
+        i++;
+    }
+}
+
 void traitement_ligne(table t, char *l) {
     char *res = strtok(l, " ");
     int taille = 0;
@@ -429,20 +464,26 @@ void traitement_ligne(table t, char *l) {
         printf("C'est pas good");
     }
     else if(tmp == 0) {
-        //print
-        if (is_a_var(buffer[3],strlen(buffer[3]))) {
-            if (output == 0) {
-                fprintf(output,"");
-            }
-            //Interaction table;
-        }
-        else {
-
-        }
+        arg_print(buffer[3],&t);
+        //print 
+       
         printf("C'est good");
     }
     else {
+        maj_variable(t, buffer, taille, tmp);
         //assignation var
+    }
+}
+
+void arg_print(char *c,table *t){
+    if (output != NULL) {
+        if (!is_a_var(c,strlen(c)) ) {
+            fprintf(output,unbounded_int2string(string2unbounded_int(c)));
+        }
+        else {
+            variable *v = get_table(t,c);
+            fprintf(output,unbounded_int2string(v->value));
+        }
     }
 }
 
