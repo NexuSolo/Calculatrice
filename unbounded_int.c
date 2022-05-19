@@ -11,12 +11,14 @@
 // output 1 = print dans le fichier
 static int outputType = 0;
 static FILE *output = NULL;
+static FILE *input = NULL;
+static FILE *save = NULL;
 
-variable *get_table_value(table t, const char *name) {
-    if(t.premier == NULL) {
+variable *get_table_value(table *t, const char *name) {
+    if(t -> premier == NULL) {
         return NULL;
     }
-    variable *v = t.premier;
+    variable *v = t -> premier;
     while (v != NULL) {
         if (strcmp(v->name, name) == 0) {
             return v;
@@ -26,20 +28,17 @@ variable *get_table_value(table t, const char *name) {
     return NULL;
 }
 
-void set_table_value(table t, const char *name, unbounded_int value) {
+void set_table_value(table *t, const char *name, unbounded_int value) {
     variable *v = get_table_value(t, name);
     if (v == NULL) {
         variable *tmp = malloc(sizeof(variable));
         tmp->name = name;
         tmp->value = value;
-        if(t.premier != NULL) {
-            tmp->suivant = t.premier;
-        }
-        t.premier = tmp;
+        tmp->suivant = t->premier;
+        t->premier = tmp;
     } else {
         v->value = value;
     }
-    printf("Premier de la table : %s = %s\n",t.premier->name , unbounded_int2string(t.premier->value));
 }
 
 unbounded_int init_unbounded_int() {
@@ -354,10 +353,12 @@ char *getline(FILE *f1) {
     if(getc(f1) == EOF) {
         return NULL;
     }
-    fseek(f1, SEEK_CUR - 1, 0);
+    fseek(f1, -1, SEEK_CUR);
     char *res = malloc(sizeof(char) * LEN);
+    assert(res != NULL);
     fscanf(f1, "%[^\n]", res);
-    printf("%s \n",res);
+    //Déplacement du curseur après le saut de ligne (\n)
+    fseek(f1, 2, SEEK_CUR);
     return res;
 }
 
@@ -386,42 +387,39 @@ bool is_a_number(char *c, size_t taille) {
 }
 
 int verif_ligne(char **c, size_t taille) {
-    // printf("test %s 0 \n",c[0]);
     if(taille < 2) return -1;
     bool variable = false;
     bool print = false;
     bool op = false;
     int res = -1;
-    
-    for (size_t i = 0; i < taille; i++){
-        // printf("%d ",strlen(c[i]));
+    for (size_t i = 0; i < taille; i++) {
         if(strcmp(c[i],"print") == 0) {
             if(i != 0) return -1;
             print = true;
         }
-        if(strcmp(c[i], "=") == 0) {
+        else if(strcmp(c[i], "=") == 0) {
             if(print == true || i != 1) return -1;
             variable = false;
         }
         else if( strcmp(c[i], "+")  == 0  ||  strcmp(c[i], "-")   == 0   || strcmp(c[i], "*")  == 0 ) {
-            if(i != 3 || print == true)  return -1;
+            if(i == 1 || i%2==0 || print == true)  return -1;
             variable = false;
             op = true;
         }
         else {
             if(variable == true || i == 3) return -1;
-            if(i == 0 && !is_a_var(c[i],strlen(c[i])))  return -1; 
+            if(i == 0 && !is_a_var(c[i],strlen(c[i])))  return -1;
             if(!is_a_var(c[i],strlen(c[i])) && !is_a_number(c[i],strlen(c[i]))) return -1;
             res++;
             variable = true;
         }
     }
     if(print && taille > 2) return -1;
-    if(op && taille <= 4) return -1;
+    if(op && (taille < 3 || taille%2==0)) return -1;
     return res;
 }
 
-void maj_variable(table t, char **c, size_t taille) {
+void maj_variable(table *t, char **c, size_t taille) {
     unbounded_int res[taille/2];
     int i = 0;
     int j = 2;
@@ -478,13 +476,25 @@ void maj_variable(table t, char **c, size_t taille) {
         res2 = unbounded_int_somme(res2, res[a]);
     }
     set_table_value(t, c[0], res2);
-    if(t.premier == NULL) {
-        printf("NULL");
-    }
-    printf("var = %s\n",c[0]);
 }
 
-void traitement_ligne(table t, char *l) {
+void arg_print(char *c, table *t) {
+    if (output != NULL) {
+        if (!is_a_var(c,strlen(c)) ) {
+            fprintf(output,"%s\n", unbounded_int2string(string2unbounded_int(c)));
+        } 
+        else {
+            variable *v = get_table_value(t,c);
+            char *valeur = "0";
+            if (v != NULL) {
+                valeur = unbounded_int2string(v->value);
+            }
+            fprintf(output,"%s = %s\n",c,valeur);
+        }
+    }
+}
+
+void traitement_ligne(table *t, char *l) {
     char *res = strtok(l, " ");
     int taille = 0;
     char *buffer[1024];
@@ -492,43 +502,56 @@ void traitement_ligne(table t, char *l) {
         buffer[taille++] = res;
         res = strtok(NULL, " ");
     }
-    int tmp = verif_ligne(buffer,taille);
+    int tmp = verif_ligne(buffer, taille);
     if(tmp == -1) {
-        //erreur
-        printf("C'est pas good\n");
+        printf("erreur\n");
     }
     else if(tmp == 0) {
-        // arg_print(buffer[3],&t);
-        //print 
-       
-        printf("print\n");
+        // printf("Print\n");
+        arg_print(buffer[1], t);
     }
     else {
-        printf("maj var\n");
+        // printf("maj variable\n");
         maj_variable(t, buffer, taille);
-        //assignation var
     }
 }
 
-// void arg_print(char *c,table *t){
-//     if (output != NULL) {
-//         if (!is_a_var(c,strlen(c)) ) {
-//             fprintf(output,unbounded_int2string(string2unbounded_int(c)));
-//         }
-//         else {
-//             variable *v = get_table(t,c);
-//             fprintf(output,unbounded_int2string(v->value));
-//         }
-//     }
-// }
+void lecture_fichier(FILE *f1,table *t){
+    char *c = getline(f1);
+    while(c != NULL) {
+        traitement_ligne(t, c);
+        c = getline(f1);   
+    }
+}
+
 
 int main(int argc, char const *argv[]) {
     table t = {.premier = NULL};
-    // // char *c = getline(fopen("test","r"));
-    // // traitement_ligne(t,c);
-    char *c = getline(fopen("test","r"));
-    traitement_ligne(t, c);
-    printf("YO");
-    printf("%s\n",unbounded_int2string(t.premier->value));
+    FILE *f1;
+    bool i = false;
+    bool o = false;
+    bool s = false;
+    input = stdin;
+    output = stdout;
+    assert(argc%2 == 1);
+    for (int i=1; i<argc; i+=2) {
+        char *option = argv[i];
+        if (strcmp(option,"-i") == 0 ) {
+            //TODO : Vérifier que c'est le seul I
+            f1 = fopen(argv[i+1],"r");
+            input = f1;
+            i = true;
+        }
+        else if (strcmp(option,"-o") == 0 ) {
+            f1 = fopen(option,"w");
+            output = stdout;
+        }
+    }
+    f1 = fopen("test","r");
+    if (f1 == NULL) {
+        return 0;
+    }
+    output = stdout;
+    lecture_fichier(f1,&t);
     return 0;
 }
