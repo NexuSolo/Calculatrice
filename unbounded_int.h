@@ -48,3 +48,5 @@ static unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b)
 unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b);
 
 static unbounded_int unbounded_int_error = {.signe = '*', .len = 0, .premier = NULL, .dernier = NULL};
+
+static char *unbounded_int2string(unbounded_int n);

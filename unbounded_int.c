@@ -39,6 +39,7 @@ void set_table_value(table t, const char *name, unbounded_int value) {
     } else {
         v->value = value;
     }
+    printf("Premier de la table : %s = %s\n",t.premier->name , unbounded_int2string(t.premier->value));
 }
 
 unbounded_int init_unbounded_int() {
@@ -472,8 +473,15 @@ void maj_variable(table t, char **c, size_t taille) {
         }
         j++;
     }
-    printf("%s\n", unbounded_int2string(res[0]));
-    printf("%s\n", unbounded_int2string(res[1]));
+    unbounded_int res2 = init_unbounded_int();
+    for(int a = 0; a < i; a++) {
+        res2 = unbounded_int_somme(res2, res[a]);
+    }
+    set_table_value(t, c[0], res2);
+    if(t.premier == NULL) {
+        printf("NULL");
+    }
+    printf("var = %s\n",c[0]);
 }
 
 void traitement_ligne(table t, char *l) {
@@ -520,5 +528,7 @@ int main(int argc, char const *argv[]) {
     // // traitement_ligne(t,c);
     char *c = getline(fopen("test","r"));
     traitement_ligne(t, c);
+    printf("YO");
+    printf("%s\n",unbounded_int2string(t.premier->value));
     return 0;
 }
