@@ -524,9 +524,34 @@ void lecture_fichier(FILE *f1,table *t){
     }
 }
 
+void save_table(table *t, const char *name) {
+    FILE *f = fopen(name, "w");
+    if (f == NULL) {
+        fprintf(stderr, "Impossible d'ouvrir le fichier %s\n", name);
+        return;
+    }
+    variable *v = t->premier;
+    while (v != NULL) {
+        fprintf(f, "%s = %s\n", v->name, unbounded_int2string(v->value));
+        v = v->suivant;
+    }
+    fclose(f);
+}
+
+table *load_table(const char *name) {
+    FILE *f = fopen(name, "r");
+    if (f == NULL) {
+        fprintf(stderr, "Impossible d'ouvrir le fichier %s\n", name);
+        return NULL;
+    }
+    table *t = init_table();
+    lecture_fichier(f, t);
+    return t;
+}
 
 int main(int argc, char const *argv[]) {
     table t = {.premier = NULL};
+    t = load_table("save");
     FILE *f1;
     bool i = false;
     bool o = false;
@@ -535,7 +560,7 @@ int main(int argc, char const *argv[]) {
     output = stdout;
     assert(argc%2 == 1);
     for (int i=1; i<argc; i+=2) {
-        char *option = argv[i];
+        const char *option = argv[i];
         if (strcmp(option,"-i") == 0 ) {
             //TODO : Vérifier que c'est le seul I
             f1 = fopen(argv[i+1],"r");
@@ -553,5 +578,6 @@ int main(int argc, char const *argv[]) {
     }
     output = stdout;
     lecture_fichier(f1,&t);
+    save_table(&t,"save");
     return 0;
 }
