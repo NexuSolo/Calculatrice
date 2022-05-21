@@ -9,7 +9,6 @@
 #define LEN 4096
 // output 0 = print dans le stdout,
 // output 1 = print dans le fichier
-static int outputType = 0;
 static FILE *output = NULL;
 static FILE *input = NULL;
 static FILE *save = NULL;
@@ -350,15 +349,20 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b) {
 }
 
 char *getline(FILE *f1) {
-    if(getc(f1) == EOF) {
-        return NULL;
+    if(f1 != stdin) {
+        if(getc(f1) == EOF) {
+            return NULL;
+        }
+        fseek(f1, -1, SEEK_CUR);
     }
-    fseek(f1, -1, SEEK_CUR);
+    else {
+        rewind(f1);
+    }
     char *res = malloc(sizeof(char) * LEN);
     assert(res != NULL);
     fscanf(f1, "%[^\n]", res);
     //Déplacement du curseur après le saut de ligne (\n)
-    fseek(f1, 2, SEEK_CUR);
+    if(f1 != stdin) fseek(f1, 2, SEEK_CUR);
     return res;
 }
 
@@ -511,7 +515,7 @@ void traitement_ligne(table *t, char *l) {
         arg_print(buffer[1], t);
     }
     else {
-        // printf("maj variable\n");
+        printf("maj variable\n");
         maj_variable(t, buffer, taille);
     }
 }
@@ -527,8 +531,8 @@ void lecture_fichier(FILE *f1,table *t){
 
 int main(int argc, char const *argv[]) {
     table t = {.premier = NULL};
-    FILE *f1;
-    bool i = false;
+    FILE *fInput,*fOutput,*fSave;
+    bool in = false;
     bool o = false;
     bool s = false;
     input = stdin;
@@ -537,21 +541,62 @@ int main(int argc, char const *argv[]) {
     for (int i=1; i<argc; i+=2) {
         char *option = argv[i];
         if (strcmp(option,"-i") == 0 ) {
-            //TODO : Vérifier que c'est le seul I
-            f1 = fopen(argv[i+1],"r");
-            input = f1;
-            i = true;
+            if (in) {
+                printf("Erreur : Plusieurs arguments -i\n");
+                exit(1);
+            }
+            if (argv[i+1][0] == '-') {
+                printf("Erreur : Instruction %s mal placee\n",argv[i+1]);
+                exit(1);
+            }
+            fInput = fopen(argv[i+1],"r");
+            if (fInput == NULL) {
+                fprintf(stderr,"Fichier %s inexistant\n",argv[i+1]);
+                return 0;
+                exit(1);
+
+            }
+            input = fInput;
+            in = true;
         }
         else if (strcmp(option,"-o") == 0 ) {
-            f1 = fopen(option,"w");
-            output = stdout;
+            if (o) {
+                printf("Erreur : Plusieurs arguments -o\n");
+                exit(1);
+            }
+            if (argv[i+1][0] == '-') {
+                printf("Erreur : Instruction %s mal placee\n",argv[i+1]);
+                exit(1);
+            }
+            fOutput = fopen(argv[i+1],"w");
+            if (fOutput == NULL) {
+                fprintf(stderr," Echec ouverture fichier %s\n",argv[i+1]);
+                exit(1);
+            }
+            output = fOutput;
+            o = true;
+        }
+        else if (strcmp(option,"-s") == 0 ) {
+            if (s) {
+                printf("Erreur : Plusieurs arguments -s\n");
+                exit(1);
+            }
+             if (argv[i+1][0] == '-') {
+                printf("Erreur : Instruction %s mal placee\n",argv[i+1]);
+                exit(1);
+            }
+            fSave = fopen(argv[i+1],"r+");
+            if (fSave == NULL) {
+                fprintf(stderr," Echec ouverture fichier %s\n",argv[i+1]);
+                exit(1);
+            }
+            save = fSave;
+            s = true;
         }
     }
-    f1 = fopen("test","r");
-    if (f1 == NULL) {
-        return 0;
+    if (save == NULL) {
+        //TODO : traiter création de fichier sauvegarde
     }
-    output = stdout;
-    lecture_fichier(f1,&t);
+    lecture_fichier(input,&t);
     return 0;
 }
