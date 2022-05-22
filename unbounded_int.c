@@ -13,10 +13,6 @@ static FILE *output = NULL;
 static FILE *input = NULL;
 static FILE *save = NULL;
 
-table *init_table() {
-    return NULL;
-}
-
 variable *get_table_value(table *t, const char *name) {
     if(t -> premier == NULL) {
         return NULL;
@@ -35,6 +31,7 @@ void set_table_value(table *t, const char *name, unbounded_int value) {
     variable *v = get_table_value(t, name);
     if (v == NULL) {
         variable *tmp = malloc(sizeof(variable));
+        assert(tmp != NULL);
         tmp->name = name;
         tmp->value = value;
         tmp->suivant = t->premier;
@@ -84,9 +81,7 @@ void add_char_to_unbounded_int_at_end(unbounded_int *n, char c) {
 
 chiffre *char_to_chiffre(char c) {
     chiffre *res = malloc(sizeof(chiffre));
-    if (res == NULL) {
-        return NULL;
-    }
+    assert(res != NULL);
     res->c = c;
     res->precedent = res->suivant = NULL;
     return res;
@@ -124,6 +119,31 @@ static chiffre *get_chiffre_at_unit(unbounded_int *n,int p) {
 
 }
 
+char *unbounded_int2string(unbounded_int n) {
+    char *res = malloc(sizeof(char) * (n.len + 2));
+    assert(res != NULL);
+    if(n.premier == NULL || n.signe == '*') {
+        res[0] = '0';
+        res[1] = '\0';
+        return res;
+    }
+    size_t i = 0;
+    if(n.signe == '-') {
+        if(n.premier->c != '0') {
+            res[0] = n.signe;
+            i++;
+        }
+    }
+    chiffre *tmp = n.premier;
+    while (tmp != NULL) {
+        res[i] = tmp->c;
+        tmp = tmp->suivant;
+        i++;
+    }
+    res[i] = '\0';
+    return res;
+}
+
 unbounded_int string2unbounded_int(const char *e) {
     unbounded_int res = init_unbounded_int();
     size_t i = 0;
@@ -153,30 +173,7 @@ unbounded_int string2unbounded_int(const char *e) {
     return res;
 }
 
-char *unbounded_int2string(unbounded_int n) {
-    char *res = malloc(sizeof(char) * (n.len + 2));
-    assert(res != NULL);
-    if(n.premier == NULL || n.signe == '*') {
-        res[0] = '0';
-        res[1] = '\0';
-        return res;
-    }
-    size_t i = 0;
-    if(n.signe == '-') {
-        if(n.premier->c != '0') {
-            res[0] = n.signe;
-            i++;
-        }
-    }
-    chiffre *tmp = n.premier;
-    while (tmp != NULL) {
-        res[i] = tmp->c;
-        tmp = tmp->suivant;
-        i++;
-    }
-    res[i] = '\0';
-    return res;
-}
+
 
 unbounded_int ll2unbounded_int(long long i) {
     unbounded_int res = init_unbounded_int();
@@ -192,7 +189,6 @@ unbounded_int ll2unbounded_int(long long i) {
         add_char_to_unbounded_int_at_start(&res, i % 10 + '0');
         i /= 10;
     }
-    printf(" res =  %s",unbounded_int2string(res));
     return res;
 }
 
@@ -373,20 +369,23 @@ unbounded_int unbounded_int_division( unbounded_int a, unbounded_int b) {
 }
 
 char *getline(FILE *f1) {
-    if(f1 != stdin) {
+    if (f1 != stdin) {
         if(getc(f1) == EOF) {
-            return NULL;
-        }
-        fseek(f1, -1, SEEK_CUR);
-    }
-    else {
-        rewind(f1);
+                return NULL;
+            }
+            fseek(f1, -1, SEEK_CUR);
     }
     char *res = malloc(sizeof(char) * LEN);
     assert(res != NULL);
-    fscanf(f1, "%[^\n]", res);
+    if (f1 == stdin) {
+        scanf("%s",res);
+    }
+    else {
+        fscanf(f1, "%[^\n]", res);
+    }
     //Déplacement du curseur après le saut de ligne (\n)
-    if(f1 != stdin) fseek(f1, 2, SEEK_CUR);
+    fseek(f1, 1, SEEK_CUR);
+    if (strlen(res) == 0) return NULL;
     return res;
 }
 
@@ -429,7 +428,7 @@ int verif_ligne(char **c, size_t taille) {
             if(print == true || i != 1) return -1;
             variable = false;
         }
-        else if( strcmp(c[i], "+")  == 0  ||  strcmp(c[i], "-")   == 0   || strcmp(c[i], "*")  == 0 ) {
+        else if( strcmp(c[i], "+")  == 0  ||  strcmp(c[i], "-")   == 0   || strcmp(c[i], "*")  == 0  || strcmp(c[i], "/")  == 0 ) {
             if(i == 1 || i%2==0 || print == true)  return -1;
             variable = false;
             op = true;
@@ -451,17 +450,17 @@ void maj_variable(table *t, char **c, size_t taille) {
     unbounded_int res[taille/2];
     int i = 0;
     int j = 2;
-    bool mult = false;
+    bool prio = false;
     bool pos = true;
     while(j < taille) {
         if(strcmp(c[j], "-") == 0) {
             pos = false;
         }
-        else if(strcmp(c[j], "*") == 0) {
-            mult = true;
+        else if(strcmp(c[j], "*") == 0  || strcmp(c[j], "/")  == 0) {
+            prio = true;
         }
         else if(strcmp(c[j], "+") != 0) {
-            if(!mult) {
+            if(!prio) {
                 if(is_a_var(c[j], strlen(c[j]))) {
                     res[i] = get_table_value(t, c[j])->value;
                     if(!pos) {
@@ -488,18 +487,31 @@ void maj_variable(table *t, char **c, size_t taille) {
             }
             else {
                 if(is_a_var(c[j], strlen(c[j]))) {
-                    res[i-1] = unbounded_int_produit(res[i-1], get_table_value(t, c[j])->value);
+                    if ( strcmp(c[j-1], "*") == 0  ) {
+                        res[i-1] = unbounded_int_produit(res[i-1], get_table_value(t, c[j])->value);
+                    }
+                    else  {
+                        res[i-1] = unbounded_int_division(res[i-1], get_table_value(t, c[j])->value);
+                    }
                 }
                 else {
-                    res[i-1] = unbounded_int_produit(res[i-1], string2unbounded_int(c[j]));
+                    if ( strcmp(c[j-1], "*") == 0  ) {
+                        res[i-1] = unbounded_int_produit(res[i-1], string2unbounded_int(c[j]));
+                    }
+                    else {
+                        res[i-1] = unbounded_int_division(res[i-1], string2unbounded_int(c[j]));
+                    }
                 }
             }
-            mult = false;
+            prio = false;
             pos = true;
         }
         j++;
     }
     unbounded_int res2 = init_unbounded_int();
+    chiffre *f = char_to_chiffre('0');
+    res2.premier = f;
+    res2.dernier = f;
     for(int a = 0; a < i; a++) {
         res2 = unbounded_int_somme(res2, res[a]);
     }
@@ -523,6 +535,7 @@ void arg_print(char *c, table *t) {
 }
 
 void traitement_ligne(table *t, char *l) {
+    printf("%s\n",l);
     char *res = strtok(l, " ");
     int taille = 0;
     char *buffer[1024];
@@ -532,6 +545,7 @@ void traitement_ligne(table *t, char *l) {
     }
     int tmp = verif_ligne(buffer, taille);
     if(tmp == -1) {
+        // printf("%s",buffer);
         printf("erreur\n");
     }
     else if(tmp == 0) {
@@ -539,16 +553,16 @@ void traitement_ligne(table *t, char *l) {
         arg_print(buffer[1], t);
     }
     else {
-        printf("maj variable\n");
+        // printf("maj variable\n");
         maj_variable(t, buffer, taille);
     }
 }
 
-void lecture_fichier(FILE *f1,table *t){
+void lecture_fichier(FILE *f1,table *t) {
     char *c = getline(f1);
     while(c != NULL) {
-        traitement_ligne(t, c);
-        c = getline(f1);   
+            traitement_ligne(t, c);
+            c = getline(f1);
     }
 }
 
@@ -569,21 +583,22 @@ void save_table(table *t, const char *name) {
 table *load_table(const char *name) {
     FILE *f = fopen(name, "r");
     if (f == NULL) {
-        fprintf(stderr, "Impossible d'ouvrir le fichier %s\n", name);
-        return NULL;
+        table *t = malloc(sizeof(table));
+        assert(t != NULL);
+        return t;
     }
-    table *t = init_table();
+    table *t = malloc(sizeof(table));
+    assert(t != NULL);
     lecture_fichier(f, t);
     return t;
 }
 
 int main(int argc, char const *argv[]) {
-   /* table *t;
+    table *t;
     FILE *fInput,*fOutput,*fSave;
     bool in = false;
-    t = load_table("save");
     bool o = false;
-    bool s = false;
+    int s = 0;
     input = stdin;
     output = stdout;
     assert(argc%2 == 1);
@@ -625,8 +640,7 @@ int main(int argc, char const *argv[]) {
             output = fOutput;
             o = true;
         }
-        else if (strcmp(option,"-s") == 0 ) {
-            if (s) {
+        else if (strcmp(option,"-s") == 0 ) {            if (s != 0) {
                 printf("Erreur : Plusieurs arguments -s\n");
                 exit(1);
             }
@@ -635,22 +649,23 @@ int main(int argc, char const *argv[]) {
                 exit(1);
             }
             fSave = fopen(argv[i+1],"r+");
-            if (fSave == NULL) {
-                fprintf(stderr," Echec ouverture fichier %s\n",argv[i+1]);
-                exit(1);
-            }
+            // if (fSave == NULL) {
+            //     fprintf(stderr," Echec ouverture fichier %s\n",argv[i+1]);
+            //     exit(1);
+            // }
             save = fSave;
-            s = true;
+            s = i+1;
         }
     }
-    if (save == NULL) {
-        //TODO : traiter création de fichier sauvegarde
+    if(s != 0) {
+        t = load_table(argv[s]);
+    }
+    else {
+        t = load_table(NULL);
     }
     lecture_fichier(input,t);
-    save_table(t,"save");*/
-    unbounded_int a = string2unbounded_int("-0");
-    unbounded_int b = string2unbounded_int("-10");
-    unbounded_int c = unbounded_int_division(b,a);
-    printf("%s \n",unbounded_int2string(c)); 
+    if(s != 0 ) {
+        save_table(t,argv[s]);
+    }
     return 0;
 }
