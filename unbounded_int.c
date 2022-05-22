@@ -13,6 +13,10 @@ static FILE *output = NULL;
 static FILE *input = NULL;
 static FILE *save = NULL;
 
+table *init_table() {
+    return NULL;
+}
+
 variable *get_table_value(table *t, const char *name) {
     if(t -> premier == NULL) {
         return NULL;
@@ -149,23 +153,6 @@ unbounded_int string2unbounded_int(const char *e) {
     return res;
 }
 
-unbounded_int ll2unbounded_int(long long i) {
-    unbounded_int res = init_unbounded_int();
-    if(i == 0) {
-        add_char_to_unbounded_int_at_end(&res, '0');
-        return res;
-    }
-    if(i < 0) {
-        res.signe = '-';
-        i = -i;
-    }
-    while(i > 0) {
-        add_char_to_unbounded_int_at_start(&res, i % 10 + '0');
-        i /= 10;
-    }
-    return res;
-}
-
 char *unbounded_int2string(unbounded_int n) {
     char *res = malloc(sizeof(char) * (n.len + 2));
     assert(res != NULL);
@@ -191,7 +178,26 @@ char *unbounded_int2string(unbounded_int n) {
     return res;
 }
 
+unbounded_int ll2unbounded_int(long long i) {
+    unbounded_int res = init_unbounded_int();
+    if(i == 0) {
+        add_char_to_unbounded_int_at_end(&res, '0');
+        return res;
+    }
+    if(i < 0) {
+        res.signe = '-';
+        i = -i;
+    }
+    while(i > 0) {
+        add_char_to_unbounded_int_at_start(&res, i % 10 + '0');
+        i /= 10;
+    }
+    printf(" res =  %s",unbounded_int2string(res));
+    return res;
+}
+
 int unbounded_int_cmp_unbounded_int(unbounded_int a, unbounded_int b) {
+    if(a.premier -> c == '0' && b.premier -> c == '0') return 0;
     if (a.signe == b.signe) {
         if (a.len != b.len) {
             if(a.signe == '+') {
@@ -346,6 +352,24 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b) {
     }
     c.signe = (a.signe == b.signe) ? '+' : '-';
     return verify_0_unbounded_int(c);
+}
+
+unbounded_int unbounded_int_division( unbounded_int a, unbounded_int b) {
+    if (a.signe == '*' || b.signe == '*' || unbounded_int_cmp_ll(b,0) == 0) return unbounded_int_error;
+    char signe = (a.signe == b.signe) ? '+' : '-';
+    long long q = 0;
+    if (a.signe == '-'|| b.signe == '-') {
+        a.signe = '+';
+        b.signe = '+';
+    }
+    unbounded_int r = a;
+    while  (unbounded_int_cmp_unbounded_int(b,r) <=  0) {
+        r = unbounded_int_difference(r,b);
+        q++;
+    }
+    r = ll2unbounded_int(q);
+    r.signe = signe;
+    return verify_0_unbounded_int(r);
 }
 
 char *getline(FILE *f1) {
@@ -554,7 +578,7 @@ table *load_table(const char *name) {
 }
 
 int main(int argc, char const *argv[]) {
-    table *t;
+   /* table *t;
     FILE *fInput,*fOutput,*fSave;
     bool in = false;
     t = load_table("save");
@@ -622,7 +646,11 @@ int main(int argc, char const *argv[]) {
     if (save == NULL) {
         //TODO : traiter création de fichier sauvegarde
     }
-    lecture_fichier(input,&t);
-    save_table(&t,"save");
+    lecture_fichier(input,t);
+    save_table(t,"save");*/
+    unbounded_int a = string2unbounded_int("-0");
+    unbounded_int b = string2unbounded_int("-10");
+    unbounded_int c = unbounded_int_division(b,a);
+    printf("%s \n",unbounded_int2string(c)); 
     return 0;
 }
