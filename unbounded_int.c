@@ -369,20 +369,24 @@ unbounded_int unbounded_int_division( unbounded_int a, unbounded_int b) {
 }
 
 char *getline(FILE *f1) {
+    char *res;
     if (f1 != stdin) {
-        if(getc(f1) == EOF) {
+        res = malloc(sizeof(char) * LEN);
+        assert(res != NULL);
+        if(fgetc(f1) == EOF) {
                 return NULL;
-            }
-            fseek(f1, -1, SEEK_CUR);
-    }
-    char *res = malloc(sizeof(char) * LEN);
-    assert(res != NULL);
-    if (f1 == stdin) {
-        scanf("%s",res);
+        }
+        fseek(f1, -1, SEEK_CUR);
+        fscanf(f1,"%[^\n]",res);
     }
     else {
-        fscanf(f1, "%[^\n]", res);
+        res = malloc(sizeof(char) * LEN);
+        assert(res != NULL);
+        fgets(res, LEN, f1);
+        res[strlen(res)-1] = '\0';
+
     }
+
     //Déplacement du curseur après le saut de ligne (\n)
     fseek(f1, 1, SEEK_CUR);
     if (strlen(res) == 0) return NULL;
@@ -535,7 +539,6 @@ void arg_print(char *c, table *t) {
 }
 
 void traitement_ligne(table *t, char *l) {
-    printf("%s\n",l);
     char *res = strtok(l, " ");
     int taille = 0;
     char *buffer[1024];
